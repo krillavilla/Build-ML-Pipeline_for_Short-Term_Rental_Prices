@@ -1,3 +1,4 @@
+import pytest
 import pandas as pd
 import numpy as np
 import scipy.stats
@@ -60,6 +61,46 @@ def test_similar_neigh_distrib(data: pd.DataFrame, ref_data: pd.DataFrame, kl_th
     assert scipy.stats.entropy(dist1, dist2, base=2) < kl_threshold
 
 
-########################################################
-# Implement here test_row_count and test_price_range   #
-########################################################
+def test_row_count(data):
+    """
+    Test if the dataset has the expected number of rows
+    """
+    assert 15000 <= data.shape[0] <= 1000000, "Dataset size is outside acceptable range"
+
+
+def test_price_range(data, min_price, max_price):
+    """
+    Test if the price values are within the expected range
+    """
+    assert data['price'].min() >= min_price, f"Minimum price below threshold: {data['price'].min()}"
+    assert data['price'].max() <= max_price, f"Maximum price above threshold: {data['price'].max()}"
+
+
+def test_location_boundaries(data):
+    """
+    Test if the coordinates are within NYC boundaries
+    """
+    NYC_LATITUDE_RANGE = (40.4774, 40.9176)
+    NYC_LONGITUDE_RANGE = (-74.2591, -73.7004)
+    
+    assert data['latitude'].between(*NYC_LATITUDE_RANGE).all(), "Latitude outside NYC boundaries"
+    assert data['longitude'].between(*NYC_LONGITUDE_RANGE).all(), "Longitude outside NYC boundaries"
+
+
+def test_column_presence_and_type(data):
+    """
+    Test if the dataset has the expected columns with correct data types
+    """
+    required_columns = {
+        'id': pd.api.types.is_integer_dtype,
+        'name': pd.api.types.is_object_dtype,
+        'host_id': pd.api.types.is_integer_dtype,
+        'price': pd.api.types.is_float_dtype,
+        'room_type': pd.api.types.is_object_dtype,
+        'longitude': pd.api.types.is_float_dtype,
+        'latitude': pd.api.types.is_float_dtype
+    }
+
+    for col_name, type_check in required_columns.items():
+        assert col_name in data.columns, f"Column {col_name} missing"
+        assert type_check(data[col_name]), f"Incorrect type for {col_name}"

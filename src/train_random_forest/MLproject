@@ -1,46 +1,65 @@
-name: download_file
+name: train_random_forest
 conda_env: conda.yml
 
 entry_points:
   main:
     parameters:
-
-      trainval_artifact:
-        description: Train dataset
+      training_data:
+        description: Fully qualified name for the training data artifact
         type: string
-
-      val_size:
-        description: Size of the validation split. Fraction of the dataset, or number of items
-        type: string
-
-      random_seed:
-        description: Seed for the random number generator. Use this for reproducibility
-        type: string
-        default: 42
-
-      stratify_by:
-        description: Column to use for stratification (if any)
-        type: string
-        default: 'none'
-
-      rf_config:
-        description: Random forest configuration. A path to a JSON file with the configuration that will
-                     be passed to the scikit-learn constructor for RandomForestRegressor.
-        type: string
-
-      max_tfidf_features:
-        description: Maximum number of words to consider for the TFIDF
-        type: string
-
+      
       output_artifact:
         description: Name for the output artifact
         type: string
+      
+      random_seed:
+        description: Random seed
+        type: int
+        default: 42
+
+      val_size:
+        description: Size of validation split
+        type: float
+        default: 0.2
+
+      max_tfidf_features:
+        description: Maximum number of words to consider for TFIDF
+        type: int
+        default: 5
+
+      n_estimators:
+        description: Number of trees in the forest
+        type: int
+        default: 100
+
+      max_depth:
+        description: Maximum tree depth
+        type: int
+        default: 10
+
+      min_samples_split:
+        description: Minimum samples required to split
+        type: int
+        default: 2
+
+      min_samples_leaf:
+        description: Minimum samples required at leaf node
+        type: int
+        default: 3
+
+      n_jobs:
+        description: Number of parallel jobs
+        type: int
+        default: -1
 
     command: >-
-      python run.py --trainval_artifact {trainval_artifact} \
-                    --val_size {val_size} \
-                    --random_seed {random_seed} \
-                    --stratify_by {stratify_by} \
-                    --rf_config {rf_config} \
-                    --max_tfidf_features {max_tfidf_features} \
-                    --output_artifact {output_artifact}
+      python run.py --training_data {training_data} \
+                   --output_artifact {output_artifact} \
+                   --random_seed {random_seed} \
+                   --val_size {val_size} \
+                   --max_tfidf_features {max_tfidf_features} \
+                   --n_estimators {n_estimators} \
+                   --max_depth {max_depth} \
+                   --min_samples_split {min_samples_split} \
+                   --min_samples_leaf {min_samples_leaf} \
+                   --n_jobs {n_jobs}

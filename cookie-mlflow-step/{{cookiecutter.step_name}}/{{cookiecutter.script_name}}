@@ -6,13 +6,11 @@ import argparse
 import logging
 import wandb
 
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
 def go(args):
-
     run = wandb.init(job_type="{{cookiecutter.job_type}}")
     run.config.update(args)
 
@@ -26,18 +24,18 @@ def go(args):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="{{cookiecutter.short_description}}")
 
-{% for arg_name in cookiecutter.parameters.split(",") %}
-    parser.add_argument(
-        "--{{arg_name}}", 
-        type=## INSERT TYPE HERE: str, float or int,
-        help=## INSERT DESCRIPTION HERE,
-        required=True
-    )
-{% endfor %}
+{ %
+for arg_name in cookiecutter.parameters.split(",") %}
+parser.add_argument(
+    "--{{arg_name}}",
+    type=  ## INSERT TYPE HERE: str, float or int,
+    help =  ## INSERT DESCRIPTION HERE,
+required = True
+)
+{ % endfor %}
 
-    args = parser.parse_args()
+args = parser.parse_args()
 
-    go(args)
+go(args)
