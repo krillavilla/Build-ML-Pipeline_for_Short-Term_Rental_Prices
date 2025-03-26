@@ -4,17 +4,18 @@ conda_env: conda.yml
 entry_points:
   main:
     parameters:
-
       csv:
         description: Input CSV file to be tested
         type: string
+        default: "clean_sample.csv:latest"  # Make sure this artifact exists in W&B
 
       ref:
-        description: Reference CSV file to compare the new csv to
+        description: Reference CSV file to compare against
         type: string
+        default: "clean_sample.csv:reference"  # Make sure this artifact exists in W&B
 
       kl_threshold:
-        description: Threshold for the KL divergence test on the neighborhood group column
+        description: Threshold for the KL divergence test
         type: float
 
       min_price:

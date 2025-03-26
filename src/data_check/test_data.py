@@ -70,10 +70,10 @@ def test_row_count(data):
 
 def test_price_range(data, min_price, max_price):
     """
-    Test if the price values are within the expected range
+    Verify that price range is within expected bounds
     """
-    assert data['price'].min() >= min_price, f"Minimum price below threshold: {data['price'].min()}"
-    assert data['price'].max() <= max_price, f"Maximum price above threshold: {data['price'].max()}"
+    assert data['price'].between(min_price, max_price).all(), \
+        f"Price range not between {min_price} and {max_price}"
 
 
 def test_location_boundaries(data):

@@ -1,100 +1,112 @@
 #!/usr/bin/env python
 """
-Download from W&B the raw dataset and apply some basic data cleaning, exporting the result to a new artifact
+This script cleans the input data
 """
 import argparse
 import logging
-import wandb
 import pandas as pd
+import wandb
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
+
 def go(args):
-    """
-    Clean the data
-    """
-    run = wandb.init(job_type="basic_cleaning")
-    run.config.update(args)
+    try:
+        run = wandb.init(
+            project="nyc_airbnb",
+            entity="build-ml-pipeline-for-short-term-rental-prices",
+            job_type="basic_cleaning",
+            resume=True
+        )
+        run.config.update(args)
+    except Exception as e:
+        logger.error(f"Error during W&B initialization: {e}")
+        raise e
 
     # Download input artifact
     logger.info("Downloading artifact")
-    artifact_local_path = run.use_artifact(args.input_artifact).file()
-    df = pd.read_csv(artifact_local_path)
+    artifact = run.use_artifact(args.input_artifact)
+    artifact_path = artifact.file()
 
-    # Clean the data
-    logger.info("Cleaning data")
-    
+    # Read the data
+    logger.info("Reading data from artifact")
+    df = pd.read_csv(artifact_path)
+
     # Convert price to float
     df['price'] = df['price'].astype(float)
-    
+
     # Drop outliers
+    logger.info("Cleaning data")
     idx = df['price'].between(args.min_price, args.max_price)
     df = df[idx].copy()
-    
+
     # Convert last_review to datetime
     df['last_review'] = pd.to_datetime(df['last_review'])
-    
-    # NYC coordinates boundaries
+
+    # Add geographical boundary filtering
     idx = df['longitude'].between(-74.25, -73.50) & df['latitude'].between(40.5, 41.2)
     df = df[idx].copy()
-    
-    # Drop rows with null values in required columns
-    df = df.dropna(subset=['price', 'room_type'])
 
-    # Save the cleaned dataset
-    df.to_csv(args.output_artifact, index=False)
-    
+    # Save the cleaned data
+    logger.info("Saving cleaned data")
+    df.to_csv("clean_sample.csv", index=False)
+
+    # Upload the cleaned data as an artifact
+    logger.info("Creating artifact")
     artifact = wandb.Artifact(
-        args.output_artifact,
+        name=args.output_artifact,
         type=args.output_type,
         description=args.output_description,
     )
-    artifact.add_file(args.output_artifact)
+    artifact.add_file("clean_sample.csv")
+    logger.info("Logging artifact")
     run.log_artifact(artifact)
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="A very basic data cleaning")
-    
+    parser = argparse.ArgumentParser(description="Clean the data")
+
     parser.add_argument(
-        "--input_artifact", 
+        "--input_artifact",
         type=str,
-        help="Input artifact name",
+        help="Input artifact",
         required=True
     )
 
     parser.add_argument(
-        "--output_artifact", 
+        "--output_artifact",
         type=str,
-        help="Output artifact name",
+        help="Output artifact",
         required=True
     )
 
     parser.add_argument(
-        "--output_type", 
+        "--output_type",
         type=str,
-        help="Output artifact type",
+        help="Type of the output artifact",
         required=True
     )
 
     parser.add_argument(
-        "--output_description", 
+        "--output_description",
         type=str,
-        help="Output artifact description",
+        help="Description for the output artifact",
         required=True
     )
 
     parser.add_argument(
-        "--min_price", 
+        "--min_price",
         type=float,
-        help="Minimum price threshold",
+        help="Minimum price for cleaning",
         required=True
     )
 
     parser.add_argument(
-        "--max_price", 
+        "--max_price",
         type=float,
-        help="Maximum price threshold",
+        help="Maximum price for cleaning",
         required=True
     )
 
