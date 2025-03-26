@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="wandb-utils",
-    version=0.1,
+    version="1.0.1",  # Updated version number
     description="Utilities for interacting with Weights and Biases and mlflow",
     zip_safe=False,  # avoid eggs, which make the handling of package data cumbersome
     packages=["wandb_utils"],

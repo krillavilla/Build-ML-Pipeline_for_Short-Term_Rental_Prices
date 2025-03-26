@@ -13,17 +13,8 @@ logger = logging.getLogger()
 
 
 def go(args):
-    try:
-        run = wandb.init(
-            project="nyc_airbnb",
-            entity="build-ml-pipeline-for-short-term-rental-prices",
-            job_type="basic_cleaning",
-            resume=True
-        )
-        run.config.update(args)
-    except Exception as e:
-        logger.error(f"Error during W&B initialization: {e}")
-        raise e
+    run = wandb.init(job_type="basic_cleaning")
+    run.config.update(args)
 
     # Download input artifact
     logger.info("Downloading artifact")
@@ -31,85 +22,93 @@ def go(args):
     artifact_path = artifact.file()
 
     # Read the data
-    logger.info("Reading data from artifact")
     df = pd.read_csv(artifact_path)
 
-    # Convert price to float
-    df['price'] = df['price'].astype(float)
-
     # Drop outliers
-    logger.info("Cleaning data")
+    logger.info("Cleaning price outliers")
     idx = df['price'].between(args.min_price, args.max_price)
     df = df[idx].copy()
 
     # Convert last_review to datetime
+    logger.info("Converting last_review to datetime")
     df['last_review'] = pd.to_datetime(df['last_review'])
 
-    # Add geographical boundary filtering
-    idx = df['longitude'].between(-74.25, -73.50) & df['latitude'].between(40.5, 41.2)
+    # Add NYC geographical boundaries filtering
+    logger.info("Filtering data for NYC boundaries")
+    
+    # NYC coordinates boundaries (approximate)
+    nyc_bounds = {
+        'lat': {'min': 40.4774, 'max': 40.9176},
+        'long': {'min': -74.2591, 'max': -73.7004}
+    }
+    
+    idx = (
+        df['latitude'].between(nyc_bounds['lat']['min'], nyc_bounds['lat']['max']) &
+        df['longitude'].between(nyc_bounds['long']['min'], nyc_bounds['long']['max'])
+    )
+    
     df = df[idx].copy()
+    logger.info(f"Removed {(~idx).sum()} records outside NYC boundaries")
 
     # Save the cleaned data
     logger.info("Saving cleaned data")
     df.to_csv("clean_sample.csv", index=False)
 
-    # Upload the cleaned data as an artifact
-    logger.info("Creating artifact")
+    logger.info("Creating cleaned artifact")
     artifact = wandb.Artifact(
-        name=args.output_artifact,
+        args.output_artifact,
         type=args.output_type,
         description=args.output_description,
     )
     artifact.add_file("clean_sample.csv")
-    logger.info("Logging artifact")
     run.log_artifact(artifact)
+
+    # Log metrics about the cleaning 
+    run.log({
+        "n_records_input": len(pd.read_csv(artifact_path)),
+        "n_records_output": len(df),
+        "n_outside_nyc": (~idx).sum()
+    })
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Clean the data")
-
+    parser = argparse.ArgumentParser(description="Clean the raw data")
     parser.add_argument(
-        "--input_artifact",
+        "--input_artifact", 
         type=str,
-        help="Input artifact",
+        help="Input artifact name",
         required=True
     )
-
     parser.add_argument(
-        "--output_artifact",
+        "--output_artifact", 
         type=str,
-        help="Output artifact",
+        help="Output artifact name",
         required=True
     )
-
     parser.add_argument(
-        "--output_type",
+        "--output_type", 
         type=str,
-        help="Type of the output artifact",
+        help="Output artifact type",
         required=True
     )
-
     parser.add_argument(
-        "--output_description",
+        "--output_description", 
         type=str,
-        help="Description for the output artifact",
+        help="Output artifact description",
         required=True
     )
-
     parser.add_argument(
-        "--min_price",
+        "--min_price", 
         type=float,
-        help="Minimum price for cleaning",
+        help="Minimum price cutoff",
         required=True
     )
-
     parser.add_argument(
-        "--max_price",
+        "--max_price", 
         type=float,
-        help="Maximum price for cleaning",
+        help="Maximum price cutoff",
         required=True
     )
 
     args = parser.parse_args()
-
     go(args)
