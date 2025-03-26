@@ -1,5 +1,5 @@
 main:
-  project_name: "nyc_airbnb"  # Make sure this matches
+  project_name: "nyc_airbnb"
   experiment_name: development
   steps: all
   components_repository: "."  # Use current directory as the base

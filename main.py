@@ -19,12 +19,48 @@ _steps = [
     "test_regression_model"
 ]
 
+def get_best_model(api):
+    """Get the best performing model from W&B"""
+    try:
+        # Get all runs from the project
+        project_path = f"{os.environ['WANDB_ENTITY']}/{os.environ['WANDB_PROJECT']}"
+        
+        # Use a more specific query
+        runs = api.runs(
+            path=project_path,
+            filters={
+                "config.job_type": "train_random_forest",
+                "state": "finished"
+            }
+        )
+        
+        # Find the run with the lowest MAE
+        best_mae = float('inf')
+        best_run = None
+        
+        for run in runs:
+            try:
+                mae = run.summary.get('mae', float('inf'))
+                if mae < best_mae:
+                    best_mae = mae
+                    best_run = run
+            except Exception as e:
+                print(f"Error processing run {run.id}: {e}")
+                continue
+        
+        return best_run
+    except Exception as e:
+        print(f"Error fetching best model: {e}")
+        return None
 
-# This automatically reads in the configuration
 @hydra.main(config_path=".", config_name="config", version_base=None)
 def go(config: DictConfig):
     # Initialize W&B first
-    wandb.login()  # This will use the API key from environment variable or previous login
+    run = wandb.init(
+        project=os.environ["WANDB_PROJECT"],
+        entity=os.environ["WANDB_ENTITY"],
+        job_type="pipeline",
+    )
     
     # These will override the previous settings if specified in config
     if "project_name" in config["main"]:
@@ -35,6 +71,36 @@ def go(config: DictConfig):
     # Steps to execute
     steps_par = config['main']['steps']
     active_steps = steps_par.split(",") if steps_par != "all" else _steps
+
+    # After pipeline completion, set up tags
+    api = wandb.Api()
+    
+    # Tag the latest clean_sample.csv as reference
+    if "basic_cleaning" in active_steps:
+        try:
+            # Get the latest version of clean_sample.csv
+            artifact = api.artifact(
+                f"{os.environ['WANDB_ENTITY']}/{os.environ['WANDB_PROJECT']}/clean_sample.csv:latest"
+            )
+            # Add the reference tag
+            artifact.link('reference')
+            print("Tagged clean_sample.csv:latest as reference")
+        except Exception as e:
+            print(f"Error tagging clean_sample.csv: {e}")
+    
+    # Tag best model as prod
+    if "train_random_forest" in active_steps:
+        best_run = get_best_model(api)
+        if best_run is not None:
+            try:
+                # Get the model artifact from the best run
+                for artifact in best_run.logged_artifacts():
+                    if artifact.type == "model_export":
+                        artifact.link('prod')
+                        print(f"Tagged best model from run {best_run.name} as prod")
+                        break
+            except Exception as e:
+                print(f"Error tagging best model: {e}")
 
     # Move to a temporary directory
     with tempfile.TemporaryDirectory() as tmp_dir:

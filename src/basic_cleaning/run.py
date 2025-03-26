@@ -24,6 +24,10 @@ def go(args):
     # Read the data
     df = pd.read_csv(artifact_path)
 
+    # Convert price to float
+    logger.info("Converting price to float")
+    df['price'] = df['price'].astype(float)
+
     # Drop outliers
     logger.info("Cleaning price outliers")
     idx = df['price'].between(args.min_price, args.max_price)

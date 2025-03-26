@@ -14,7 +14,7 @@ Key achievements and technical highlights:
 Technologies used: Python, MLflow, Weights & Biases, scikit-learn, pandas, hydra
 
 ## Links
-- Weights & Biases Project: https://wandb.ai/krillavilla-arizona-state-university/nyc_airbnb?nw=nwuserkrillavilla
+- Weights & Biases Project: https://wandb.ai/build-ml-pipeline-for-short-term-rental-prices/nyc_airbnb
 - GitHub Repository: https://github.com/krillavilla/Build-ML-Pipeline_for_Short-Term_Rental_Prices
 
 ## Project Structure
