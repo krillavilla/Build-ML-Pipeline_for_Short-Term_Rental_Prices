@@ -1,0 +1,14 @@
+
+name: nyc_airbnb
+
+conda_env: conda.yml
+
+entry_points:
+  main:
+    parameters:
+      hydra_options:
+        description: "Hydra options to override"
+        type: string
+        default: ""
+    
+    command: "python main.py ${hydra_options}"
